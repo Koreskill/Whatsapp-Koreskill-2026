@@ -13,8 +13,10 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY --chown=django:django . .
 
+RUN python manage.py collectstatic --noinput
+
 USER django
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"]
