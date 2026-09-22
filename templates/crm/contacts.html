@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Contactos | CRM Inmobiliario{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "crm/_nav.html" %}
+<div class="page contacts-page">
+  <div class="page-inner">
+    <header class="page-header">
+      <div>
+        <span class="eyebrow">PERSONAS Y OPORTUNIDADES</span>
+        <h1>Contactos</h1>
+        <p>Encontrá la información que necesitás para cada conversación.</p>
+      </div>
+      <a class="header-action primary" href="{% url 'admin:crm_lead_add' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo contacto
+      </a>
+    </header>
+
+    <section class="contacts-panel">
+      <div class="contacts-toolbar">
+        <div class="contacts-count"><strong>{{ page_obj.paginator.count }}</strong> contacto{{ page_obj.paginator.count|pluralize }}</div>
+        <form method="get" class="contacts-filters" role="search">
+          <label class="contacts-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" name="q" value="{{ query }}" placeholder="Buscar por nombre, teléfono o email" aria-label="Buscar contactos">
+          </label>
+          <select name="stage" aria-label="Filtrar por etapa" onchange="this.form.submit()">
+            <option value="">Todas las etapas</option>
+            {% for stage in stages %}<option value="{{ stage.pk }}"{% if selected_stage == stage.pk %} selected{% endif %}>{{ stage.name }}</option>{% endfor %}
+          </select>
+          <button type="submit">Buscar</button>
+        </form>
+      </div>
+
+      <div class="contacts-list">
+        {% for lead in page_obj %}
+        <article class="contact-row">
+          <span class="contact-avatar">{{ lead.first_name|slice:':1'|upper }}{{ lead.last_name|slice:':1'|upper }}</span>
+          <div class="contact-identity">
+            <a href="{% url 'admin:crm_lead_change' lead.pk %}">{{ lead.full_name }}</a>
+            <span>{{ lead.phone|default:lead.email|default:"Sin teléfono ni email" }}</span>
+            <span class="contact-stage-mobile">{{ lead.pipeline_stage|default:"Sin etapa" }}</span>
+          </div>
+          <span class="contact-operation">{{ lead.get_operation_display|default:"Sin operación" }}</span>
+          <span class="contact-stage">{{ lead.pipeline_stage|default:"Sin etapa" }}</span>
+          <div class="contact-actions">
+            {% with conversation=lead.conversations.all|first %}
+              {% if conversation %}<a class="contact-icon-link" href="{% url 'chat-detail' conversation.pk %}" aria-label="Abrir conversación con {{ lead.full_name }}" title="Abrir conversación"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z"/><path d="M8 8h8M8 12h5"/></svg></a>{% endif %}
+            {% endwith %}
+            <a class="contact-detail-link" href="{% url 'admin:crm_lead_change' lead.pk %}">Ver ficha <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+        {% empty %}
+        <div class="contacts-empty">
+          <span class="contacts-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+          <h2>No encontramos contactos</h2>
+          <p>Probá otra búsqueda o elegí una etapa diferente.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="contacts-pagination">
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        <div>
+          {% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&stage={{ selected_stage_param }}&page={{ page_obj.previous_page_number }}">← Anterior</a>{% endif %}
+          {% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&stage={{ selected_stage_param }}&page={{ page_obj.next_page_number }}">Siguiente →</a>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

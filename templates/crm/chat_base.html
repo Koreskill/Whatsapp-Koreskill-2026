@@ -4,88 +4,12 @@
 
 {% block extra_head %}
 <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
-<style>
-  :root {
-    --brand: #1d4ed8;
-    --brand-soft: #eef2ff;
-    --ink: #17202a;
-    --ink-2: #4b5563;
-    --ink-3: #8792a2;
-    --line: #e7eaee;
-    --bg: #f6f7f9;
-    --bubble-in: #ffffff;
-    --bubble-out: #dcf5e3;
-    --bubble-out-ink: #14532d;
-  }
-
-  .chat-layout { display: flex; flex: 1; min-height: 0; background: var(--bg); }
-
-  /* Sidebar */
-  .chat-sidebar { width: 320px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
-  .sidebar-head { padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
-  .sidebar-head h1 { margin: 0 0 12px; font-size: 1.15rem; font-weight: 700; }
-  .sidebar-search { position: relative; }
-  .sidebar-search input { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 9px 14px 9px 34px; font: inherit; font-size: .85rem; }
-  .sidebar-search input:focus { outline: none; border-color: var(--brand); background: #fff; }
-  .sidebar-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--ink-3); }
-
-  .conv-list { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; }
-  .conv-item { border-radius: 12px; }
-  .conv-item a { display: flex; gap: 11px; align-items: flex-start; padding: 11px 10px; text-decoration: none; color: inherit; border-radius: 12px; }
-  .conv-item a:hover { background: var(--bg); }
-  .conv-item.active a { background: var(--brand-soft); }
-  .conv-empty { padding: 24px 14px; color: var(--ink-3); font-size: .85rem; text-align: center; }
-
-  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; flex-shrink: 0; }
-  .conv-body { min-width: 0; flex: 1; }
-  .conv-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-  .conv-name { font-weight: 650; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .conv-time { font-size: .7rem; color: var(--ink-3); flex-shrink: 0; }
-  .conv-preview { margin: 2px 0 0; font-size: .8rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .conv-platform { display: inline-block; margin-top: 4px; font-size: .68rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--brand); }
-
-  /* Main column */
-  .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .chat-empty { margin: auto; color: var(--ink-3); font-size: .95rem; }
-
-  .chat-header { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: #fff; }
-  .chat-header .avatar { width: 38px; height: 38px; font-size: .72rem; }
-  .chat-header h2 { margin: 0; font-size: 1rem; }
-  .chat-header p { margin: 1px 0 0; font-size: .78rem; color: var(--ink-3); }
-  .chat-header a { color: var(--brand); text-decoration: none; }
-
-  .window-banner { display: flex; align-items: center; gap: 8px; padding: 9px 22px; font-size: .82rem; }
-  .window-banner.open { background: #ecfdf3; color: #027a48; }
-  .window-banner.closed { background: #fef3f2; color: #b42318; }
-  .window-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-  #thread-messages { flex: 1; overflow-y: auto; padding: 22px 6% ; display: flex; flex-direction: column; gap: 6px; }
-  .msg { max-width: 62%; padding: 9px 13px; border-radius: 14px; font-size: .88rem; line-height: 1.4; box-shadow: 0 1px 2px rgba(16, 24, 40, .05); }
-  .msg-in { align-self: flex-start; background: var(--bubble-in); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
-  .msg-out { align-self: flex-end; background: var(--bubble-out); color: var(--bubble-out-ink); border-bottom-right-radius: 4px; }
-  .msg p { margin: 0; white-space: pre-wrap; word-break: break-word; }
-  .msg-meta { display: block; text-align: right; font-size: .65rem; opacity: .6; margin-top: 3px; }
-  .thread-empty { margin: auto; color: var(--ink-3); font-size: .85rem; }
-  .send-error { color: #b42318; font-size: .8rem; padding: 0 22px 8px; }
-
-  .composer { display: flex; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: #fff; }
-  .composer input { flex: 1; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 11px 16px; font: inherit; font-size: .88rem; }
-  .composer input:focus { outline: none; border-color: var(--brand); background: #fff; }
-  .composer button { border: 0; border-radius: 999px; width: 42px; height: 42px; flex-shrink: 0; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0; padding: 0; }
-  .composer button svg { width: 18px; height: 18px; }
-
-  @media (max-width: 760px) {
-    .chat-sidebar { width: 100%; }
-    .chat-layout.has-conversation .chat-sidebar { display: none; }
-    .chat-layout:not(.has-conversation) .chat-main { display: none; }
-  }
-</style>
 <script>
   function filterConversations(term) {
     term = term.trim().toLowerCase();
-    document.querySelectorAll(".conv-item").forEach(function (item) {
-      var name = (item.dataset.name || "").toLowerCase();
-      item.style.display = !term || name.includes(term) ? "" : "none";
+    document.querySelectorAll('.conv-item').forEach(function (item) {
+      var name = (item.dataset.name || '').toLowerCase();
+      item.style.display = !term || name.includes(term) ? '' : 'none';
     });
   }
 </script>
@@ -94,26 +18,25 @@
 {% block content %}
 {% include "crm/_nav.html" %}
 <div class="chat-layout{% if conversation %} has-conversation{% endif %}">
-    <aside class="chat-sidebar">
-        <div class="sidebar-head">
-            <h1>Bandeja</h1>
-            <div class="sidebar-search">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                <input type="text" placeholder="Buscar por nombre…" oninput="filterConversations(this.value)">
-            </div>
-        </div>
-        <div
-            id="conversations-list"
-            hx-get="{% url 'chat-sidebar' %}{% if conversation %}?active={{ conversation.pk }}{% endif %}"
-            hx-trigger="every 6s"
-            hx-swap="innerHTML"
-            hx-on::after-swap="filterConversations(document.querySelector('.sidebar-search input').value)"
-        >
-            {% include "crm/_conversations.html" %}
-        </div>
-    </aside>
-    <section class="chat-main">
-        {% block chat_main %}{% endblock %}
-    </section>
+  <aside class="chat-sidebar" aria-label="Conversaciones">
+    <div class="sidebar-head">
+      <span class="eyebrow">MENSAJES</span>
+      <h1>Bandeja</h1>
+      <div class="sidebar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" aria-label="Buscar conversaciones" placeholder="Buscar conversación..." oninput="filterConversations(this.value)">
+      </div>
+    </div>
+    <div id="conversations-list"
+      hx-get="{% url 'chat-sidebar' %}{% if conversation %}?active={{ conversation.pk }}{% endif %}"
+      hx-trigger="every 6s"
+      hx-swap="innerHTML"
+      hx-on::after-swap="filterConversations(document.querySelector('.sidebar-search input').value)">
+      {% include "crm/_conversations.html" %}
+    </div>
+  </aside>
+  <section class="chat-main" aria-label="Conversación">
+    {% block chat_main %}{% endblock %}
+  </section>
 </div>
 {% endblock %}

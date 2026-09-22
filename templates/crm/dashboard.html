@@ -1,104 +1,99 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | CRM Inmobiliario{% endblock %}
+{% block title %}Resumen | CRM Inmobiliario{% endblock %}
 {% block body_class %}app{% endblock %}
-
-{% block extra_head %}
-<style>
-  .dash-wrap { flex: 1; min-height: 0; overflow-y: auto; background: #f6f7f9; padding: 22px; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .kpi-card { background: #fff; border: 1px solid #e7eaee; border-radius: 12px; padding: 16px 18px; }
-  .kpi-card .kpi-value { font-size: 1.8rem; font-weight: 800; color: #17202a; }
-  .kpi-card .kpi-label { font-size: .8rem; color: #8792a2; margin-top: 2px; }
-
-  .dash-cols { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
-  @media (max-width: 900px) { .dash-cols { grid-template-columns: 1fr; } }
-
-  .panel { background: #fff; border: 1px solid #e7eaee; border-radius: 12px; padding: 18px; }
-  .panel h2 { margin: 0 0 14px; font-size: .95rem; }
-
-  .stage-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .84rem; }
-  .stage-row .stage-name { width: 140px; flex-shrink: 0; color: #4b5563; }
-  .stage-row .stage-bar-track { flex: 1; background: #f1f3f5; border-radius: 999px; height: 10px; overflow: hidden; }
-  .stage-row .stage-bar-fill { background: #1d4ed8; height: 100%; border-radius: 999px; }
-  .stage-row .stage-count { width: 24px; text-align: right; flex-shrink: 0; font-weight: 700; color: #17202a; }
-
-  .list-plain { list-style: none; margin: 0; padding: 0; }
-  .list-plain li { padding: 8px 0; border-bottom: 1px solid #f0f2f4; font-size: .84rem; }
-  .list-plain li:last-child { border-bottom: none; }
-  .list-plain .muted { color: #8792a2; font-size: .78rem; }
-</style>
-{% endblock %}
 
 {% block content %}
 {% include "crm/_nav.html" %}
-<div class="dash-wrap">
+<div class="page">
+  <div class="page-inner">
+    <header class="page-header">
+      <div>
+        <span class="eyebrow">TU ESPACIO DE TRABAJO</span>
+        <h1>Resumen</h1>
+        <p>Una vista clara de lo que está pasando en tu negocio.</p>
+      </div>
+      <a class="header-action" href="{% url 'admin:crm_lead_add' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo contacto
+      </a>
+    </header>
+
+    <section class="welcome-card" aria-label="Acceso rápido al pipeline">
+      <div>
+        <h2>Todo en movimiento, en un solo lugar.</h2>
+        <p>Seguí cada conversación, organizá las oportunidades y enfocá tu próximo paso.</p>
+      </div>
+      <a class="header-action" href="{% url 'pipeline-board' %}">Ver pipeline <span aria-hidden="true">↗</span></a>
+    </section>
+
     <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-value">{{ total_leads }}</div>
-            <div class="kpi-label">Leads totales</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-value">{{ new_this_week }}</div>
-            <div class="kpi-label">Nuevos esta semana</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-value">{% if conversion_rate is not None %}{{ conversion_rate }}%{% else %}—{% endif %}</div>
-            <div class="kpi-label">Tasa de conversión ({{ closed_won }} ganados / {{ closed_lost }} perdidos)</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-value">{{ ai_messages_count }}</div>
-            <div class="kpi-label">Mensajes respondidos por IA</div>
-        </div>
+      <article class="kpi-card">
+        <div class="kpi-top"><span class="kpi-label">Leads totales</span><span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h2a5.5 5.5 0 0 1 5.5 5.5V20H3.5ZM17 5a3 3 0 0 1 0 6M19 14a5 5 0 0 1 2 4v2"/></svg></span></div>
+        <div class="kpi-value">{{ total_leads }}</div>
+        <span class="kpi-note">En todas las etapas</span>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-top"><span class="kpi-label">Nuevos esta semana</span><span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span></div>
+        <div class="kpi-value">{{ new_this_week }}</div>
+        <span class="kpi-note">Últimos 7 días</span>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-top"><span class="kpi-label">Tasa de conversión</span><span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 10 12l4 4 6-9M15 7h5v5"/></svg></span></div>
+        <div class="kpi-value">{% if conversion_rate is not None %}{{ conversion_rate }}%{% else %}—{% endif %}</div>
+        <span class="kpi-note">{{ closed_won }} ganados · {{ closed_lost }} perdidos</span>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-top"><span class="kpi-label">Mensajes respondidos por IA</span><span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg></span></div>
+        <div class="kpi-value">{{ ai_messages_count }}</div>
+        <span class="kpi-note">Respuestas automáticas</span>
+      </article>
     </div>
 
-    <div class="dash-cols">
-        <div class="panel">
-            <h2>Leads por etapa</h2>
-            {% for stage in stages %}
-            <div class="stage-row">
-                <span class="stage-name">{{ stage.name }}</span>
-                <span class="stage-bar-track">
-                    <span
-                        class="stage-bar-fill"
-                        style="width: {% widthratio stage.lead_count max_stage_count 100 %}%"
-                    ></span>
-                </span>
-                <span class="stage-count">{{ stage.lead_count }}</span>
-            </div>
-            {% empty %}
-            <p class="muted">No hay etapas activas.</p>
-            {% endfor %}
+    <div class="dash-grid">
+      <section class="panel">
+        <div class="section-heading"><h2>Leads por etapa</h2><a href="{% url 'pipeline-board' %}">Ver tablero →</a></div>
+        {% for stage in stages %}
+        <div class="stage-row">
+          <span class="stage-name" title="{{ stage.name }}">{{ stage.name }}</span>
+          <span class="stage-bar-track"><span class="stage-bar-fill" style="width: {% widthratio stage.lead_count max_stage_count 100 %}%"></span></span>
+          <span class="stage-count">{{ stage.lead_count }}</span>
         </div>
+        {% empty %}
+        <p class="empty-state">No hay etapas activas.</p>
+        {% endfor %}
+      </section>
 
-        <div class="panel">
-            <h2>Leads recientes</h2>
-            <ul class="list-plain">
-                {% for lead in recent_leads %}
-                <li>
-                    <a href="{% url 'admin:crm_lead_change' lead.pk %}">{{ lead.full_name }}</a>
-                    <span class="muted"> · {{ lead.pipeline_stage|default:"sin etapa" }} · {{ lead.created_at|date:"d/m H:i" }}</span>
-                </li>
-                {% empty %}
-                <li class="muted">Todavía no hay leads.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <div class="panel" style="margin-top: 16px;">
-        <h2>Actividad reciente</h2>
+      <section class="panel">
+        <div class="section-heading"><h2>Contactos recientes</h2><a href="{% url 'contacts-list' %}">Ver todos →</a></div>
         <ul class="list-plain">
-            {% for m in recent_messages %}
-            <li>
-                <strong>{{ m.conversation }}</strong>
-                <span class="muted"> · {{ m.get_direction_display }}{% if m.ai_generated %} (IA){% endif %} · {{ m.created_at|date:"d/m H:i" }}</span>
-                <br>{{ m.text|default:"(sin texto)"|truncatechars:80 }}
-            </li>
-            {% empty %}
-            <li class="muted">Todavía no hay actividad.</li>
-            {% endfor %}
+          {% for lead in recent_leads %}
+          <li>
+            <span class="list-avatar">{{ lead.first_name|slice:':1'|upper }}</span>
+            <span class="list-main"><a href="{% url 'admin:crm_lead_change' lead.pk %}">{{ lead.full_name }}</a><small>{{ lead.pipeline_stage|default:"Sin etapa" }}</small></span>
+            <time class="list-date" datetime="{{ lead.created_at|date:'c' }}">{{ lead.created_at|date:"d M" }}</time>
+          </li>
+          {% empty %}
+          <li class="empty-state">Todavía no hay contactos.</li>
+          {% endfor %}
         </ul>
+      </section>
     </div>
+
+    <section class="panel activity-panel">
+      <div class="section-heading"><h2>Actividad reciente</h2><a href="{% url 'chat-list' %}">Ir a la bandeja →</a></div>
+      <ul class="list-plain">
+        {% for m in recent_messages %}
+        <li>
+          <span class="activity-dot"></span>
+          <span class="list-main"><strong>{{ m.conversation }} · {{ m.get_direction_display }}{% if m.ai_generated %} (IA){% endif %}</strong><small>{{ m.text|default:"(sin texto)"|truncatechars:100 }}</small></span>
+          <time class="list-date" datetime="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"d M · H:i" }}</time>
+        </li>
+        {% empty %}
+        <li class="empty-state">Todavía no hay actividad.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
 </div>
 {% endblock %}

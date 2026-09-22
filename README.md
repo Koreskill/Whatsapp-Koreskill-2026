@@ -54,7 +54,7 @@ python manage.py runserver
 
 En PowerShell, reemplazar `cp` por `Copy-Item`. Django no lee `.env` automáticamente: cargar esas variables desde la terminal, el editor o la plataforma. Esto evita una dependencia de configuración adicional.
 
-Abrir `http://127.0.0.1:8000/login/`. Después del ingreso, la primera fase dirige al administrador de Django.
+Abrir `http://127.0.0.1:8000/login/`. Después del ingreso, el CRM dirige al resumen; el administrador sigue disponible desde Ajustes.
 
 ## Variables de entorno
 

@@ -411,3 +411,25 @@ class DashboardViewTests(TestCase):
         self.assertContains(res, "Leads totales")
         # 1 ganado de 2 decididos (Cerrado + Perdido) = 50%
         self.assertContains(res, "50%")
+
+
+class ContactsViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="asesor")
+        self.new_stage = PipelineStage.objects.get(name="Nuevo")
+        self.closed_stage = PipelineStage.objects.get(name="Cerrado")
+        Lead.objects.create(first_name="Ana", last_name="Torres", pipeline_stage=self.new_stage)
+        Lead.objects.create(first_name="Bruno", last_name="López", pipeline_stage=self.closed_stage)
+
+    def test_contacts_requires_login(self):
+        self.assertEqual(self.client.get("/contactos/").status_code, 302)
+
+    def test_contacts_search_and_stage_filter(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/contactos/", {"q": "Ana", "stage": self.new_stage.pk})
+        self.assertContains(response, "Ana Torres")
+        self.assertNotContains(response, "Bruno López")
+
+        response = self.client.get("/contactos/", {"stage": self.closed_stage.pk})
+        self.assertContains(response, "Bruno López")
+        self.assertNotContains(response, "Ana Torres")

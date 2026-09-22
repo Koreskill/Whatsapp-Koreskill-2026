@@ -1,0 +1,66 @@
+:root, html[data-theme="light"], html[data-theme="auto"], html[data-theme="dark"] {
+  color-scheme: light;
+  --primary: #24436a;
+  --secondary: #1a2d47;
+  --accent: #dce8ff;
+  --primary-fg: #fff;
+  --body-fg: #1a2d47;
+  --body-bg: #f7f9fc;
+  --body-quiet-color: #718199;
+  --body-medium-color: #52647e;
+  --body-loud-color: #172b45;
+  --link-fg: #315bbb;
+  --link-hover-color: #1f418f;
+  --breadcrumbs-bg: #ebf0f7;
+  --breadcrumbs-fg: #526681;
+  --breadcrumbs-link-fg: #315bbb;
+  --header-color: #fff;
+  --header-branding-color: #fff;
+  --header-bg: #1a2d47;
+  --selected-bg: #eaf0ff;
+  --selected-row: #f2f6fe;
+  --darkened-bg: #f4f7fb;
+  --close-button-bg: #667890;
+  --close-button-hover-bg: #415672;
+  --button-bg: #25466d;
+  --button-hover-bg: #34618f;
+  --default-button-bg: #25466d;
+  --default-button-hover-bg: #34618f;
+  --border-color: #e0e7f0;
+  --hairline-color: #e8edf4;
+}
+body { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.theme-toggle { display: none; }
+#header { min-height: 58px; padding: 7px 22px; box-shadow: 0 5px 16px rgba(25, 46, 74, .12); }
+#branding { display: flex; align-items: center; }
+#site-name { margin: 0; font-size: 19px; font-weight: 750; letter-spacing: -.04em; }
+#site-name a { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+#site-name small { display: block; margin-top: 1px; color: #aebed5; font-size: 8px; font-weight: 750; letter-spacing: .17em; }
+.admin-brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #fff; color: #1a2d47; font-size: 20px; font-weight: 800; }
+.admin-back { align-self: center; margin-left: 24px; color: #cfdef5 !important; font-size: 12px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+.admin-back:hover { color: #fff !important; }
+#user-tools { align-self: center; font-size: 11px; }
+div.breadcrumbs { padding: 13px 30px; border: 0; }
+#content { padding: 28px 30px; }
+#content h1 { color: #172b45; font-size: 27px; font-weight: 760; letter-spacing: -.04em; }
+.module, #changelist, #changelist-filter, .inline-group, .submit-row { overflow: hidden; border: 1px solid #e0e7f0; border-radius: 13px; background: #fff; box-shadow: 0 9px 24px rgba(35, 55, 83, .035); }
+.module h2, .module caption, .inline-group h2 { padding: 13px 17px; border: 0; background: #edf2fa; color: #233e63; font-size: 12px; font-weight: 750; letter-spacing: .02em; }
+.module table th, .module table td { padding: 11px 13px; }
+#changelist .actions { padding: 12px 15px; }
+#changelist-filter { padding-bottom: 10px; }
+#changelist-filter h2 { border-radius: 12px 12px 0 0; }
+#changelist-filter h3 { color: #4a5e78; }
+fieldset.module { padding-bottom: 10px; }
+fieldset.module h2 { margin: 0 0 9px; }
+.form-row { padding: 13px 17px; }
+input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="url"], textarea, select, .select2-container--admin-autocomplete .select2-selection--single { border: 1px solid #d7e0ec; border-radius: 8px; background: #fff; }
+input:focus, textarea:focus, select:focus { border-color: #6f93df; outline: 3px solid #eaf0ff; }
+.button, input[type="submit"], input[type="button"], .submit-row input, a.button { border-radius: 8px; background: #25466d; color: #fff; font-weight: 700; }
+.button:hover, input[type="submit"]:hover, input[type="button"]:hover, .submit-row input:hover, a.button:hover { background: #34618f; }
+.submit-row { padding: 12px 15px; }
+@media (max-width: 767px) {
+  #header { padding: 9px 14px; }
+  .admin-back { display: none; }
+  #content { padding: 18px 14px; }
+  div.breadcrumbs { padding: 10px 14px; }
+}

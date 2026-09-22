@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -52,6 +53,40 @@ def dashboard(request):
             "ai_messages_count": ai_messages_count,
             "recent_leads": recent_leads,
             "recent_messages": recent_messages,
+        },
+    )
+
+
+@login_required
+def contacts_list(request):
+    query = request.GET.get("q", "").strip()
+    stage_id = request.GET.get("stage", "")
+    stages = PipelineStage.objects.filter(is_active=True)
+    leads = Lead.objects.select_related("pipeline_stage").prefetch_related(
+        "conversations"
+    ).order_by("-created_at", "-pk")
+
+    if query:
+        leads = leads.filter(
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(email__icontains=query)
+        )
+    selected_stage = int(stage_id) if stage_id.isdigit() else None
+    if selected_stage is not None:
+        leads = leads.filter(pipeline_stage_id=selected_stage)
+
+    page_obj = Paginator(leads, 25).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "crm/contacts.html",
+        {
+            "page_obj": page_obj,
+            "query": query,
+            "stages": stages,
+            "selected_stage": selected_stage,
+            "selected_stage_param": stage_id if selected_stage is not None else "",
         },
     )
 

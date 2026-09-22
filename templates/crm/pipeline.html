@@ -3,71 +3,65 @@
 {% block title %}Pipeline | CRM Inmobiliario{% endblock %}
 {% block body_class %}app{% endblock %}
 
-{% block extra_head %}
-<style>
-  .board-wrap { flex: 1; min-height: 0; overflow-x: auto; background: #f6f7f9; }
-  .board { display: flex; gap: 14px; padding: 18px; height: 100%; box-sizing: border-box; }
-  .board-col { background: #fff; border: 1px solid #e7eaee; border-radius: 12px; width: 264px; flex-shrink: 0; display: flex; flex-direction: column; }
-  .board-col-head { padding: 12px 14px; border-bottom: 1px solid #e7eaee; font-weight: 700; font-size: .86rem; display: flex; justify-content: space-between; align-items: center; }
-  .board-col-head span.count { font-weight: 600; font-size: .75rem; color: #8792a2; background: #f6f7f9; border-radius: 999px; padding: 2px 8px; }
-  .board-col-body { padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
-  .board-col-body.dragover { background: #eef2ff; }
-  .lead-card { background: #f9fafb; border: 1px solid #e7eaee; border-radius: 10px; padding: 10px 12px; cursor: grab; font-size: .85rem; }
-  .lead-card:active { cursor: grabbing; }
-  .lead-card strong { display: block; margin-bottom: 2px; }
-  .lead-card span { color: #8792a2; font-size: .78rem; }
-  .board-col-empty { color: #b6bec8; font-size: .78rem; text-align: center; padding: 14px 4px; }
-</style>
-{% endblock %}
-
 {% block content %}
 {% include "crm/_nav.html" %}
-<div class="board-wrap">
-    <div class="board">
+<div class="page board-page">
+  <div class="page-inner">
+    <header class="page-header board-intro">
+      <div>
+        <span class="eyebrow">OPORTUNIDADES</span>
+        <h1>Pipeline</h1>
+        <p>Mové cada contacto a la etapa que corresponda.</p>
+      </div>
+      <a class="header-action primary" href="{% url 'admin:crm_lead_add' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo contacto
+      </a>
+    </header>
+    <div class="board-wrap">
+      <div class="board">
         {% for stage in stages %}
-        <div class="board-col">
-            <div class="board-col-head">
-                <span>{{ stage.name }}</span>
-                <span class="count">{{ stage.leads.all|length }}</span>
-            </div>
-            <div
-                class="board-col-body"
-                data-stage="{{ stage.pk }}"
-                ondragover="event.preventDefault(); this.classList.add('dragover')"
-                ondragleave="this.classList.remove('dragover')"
-                ondrop="moveLead(event, {{ stage.pk }})"
-            >
-                {% for lead in stage.leads.all %}
-                <div class="lead-card" draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '{{ lead.pk }}')">
-                    <strong>{{ lead.full_name }}</strong>
-                    <span>{{ lead.phone|default:lead.get_operation_display }}</span>
-                </div>
-                {% empty %}
-                <p class="board-col-empty">Sin leads en esta etapa</p>
-                {% endfor %}
-            </div>
-        </div>
+        <section class="board-col" aria-label="Etapa {{ stage.name }}">
+          <div class="board-col-head">
+            <span class="board-col-label"><span class="stage-dot"></span><span>{{ stage.name }}</span></span>
+            <span class="count">{{ stage.leads.all|length }}</span>
+          </div>
+          <div class="board-col-body" data-stage="{{ stage.pk }}" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="moveLead(event, {{ stage.pk }})">
+            {% for lead in stage.leads.all %}
+            <article class="lead-card" draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '{{ lead.pk }}')">
+              <strong>{{ lead.full_name }}</strong>
+              <small>{{ lead.phone|default:lead.get_operation_display }}</small>
+              <div class="lead-card-footer"><span class="lead-chip">{{ lead.get_operation_display|default:"Contacto" }}</span><a href="{% url 'admin:crm_lead_change' lead.pk %}" draggable="false">Ver detalle →</a></div>
+            </article>
+            {% empty %}
+            <p class="board-col-empty">No hay contactos en esta etapa</p>
+            {% endfor %}
+          </div>
+        </section>
         {% endfor %}
+      </div>
     </div>
+  </div>
 </div>
 <script>
   function getCookie(name) {
-    var match = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
-    return match ? match.pop() : "";
+    var cookie = document.cookie.split('; ').find(function (item) { return item.startsWith(name + '='); });
+    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : '';
   }
 
   function moveLead(event, stageId) {
     event.preventDefault();
     var column = event.currentTarget;
-    column.classList.remove("dragover");
-    var leadId = event.dataTransfer.getData("text/plain");
-    fetch("/pipeline/leads/" + leadId + "/move/", {
-      method: "POST",
+    column.classList.remove('dragover');
+    var leadId = event.dataTransfer.getData('text/plain');
+    if (!leadId) return;
+    fetch('/pipeline/leads/' + leadId + '/move/', {
+      method: 'POST',
       headers: {
-        "X-CSRFToken": getCookie("csrftoken"),
-        "Content-Type": "application/x-www-form-urlencoded",
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: "stage_id=" + stageId,
+      body: 'stage_id=' + encodeURIComponent(stageId),
     }).then(function (res) {
       if (res.ok) window.location.reload();
     });

@@ -1,0 +1,9 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | CRM Inmobiliario{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'crm/admin.css' %}">{% endblock %}
+{% block branding %}
+<div id="site-name"><a href="{% url 'dashboard' %}"><span class="admin-brand-mark">C</span><span>CRM <small>INMOBILIARIO</small></span></a></div>
+{% endblock %}
+{% block nav-global %}<a class="admin-back" href="{% url 'dashboard' %}">← Volver al CRM</a>{% endblock %}

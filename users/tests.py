@@ -22,7 +22,7 @@ class AuthenticationViewsTests(TestCase):
             {"username": self.user.username, "password": self.password},
         )
 
-        self.assertRedirects(response, "/admin/", fetch_redirect_response=False)
+        self.assertRedirects(response, "/dashboard/", fetch_redirect_response=False)
 
     def test_logout_requires_post_and_ends_the_session(self):
         self.client.force_login(self.user)
