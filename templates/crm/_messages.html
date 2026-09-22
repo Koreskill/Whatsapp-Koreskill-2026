@@ -1,7 +1,7 @@
 {% for m in thread %}
 <div class="msg msg-{{ m.direction }}">
     <p>{{ m.text }}</p>
-    <span class="msg-meta">{{ m.sent_at|default:m.created_at|date:"d/m H:i" }}</span>
+    <span class="msg-meta">{{ m.sent_at|default:m.created_at|date:"H:i" }}</span>
 </div>
 {% empty %}
 <p class="thread-empty">Todavía no hay mensajes en esta conversación.</p>

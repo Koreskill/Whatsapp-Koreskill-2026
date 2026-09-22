@@ -4,12 +4,29 @@
 
 {% block chat_main %}
 <header class="chat-header">
-    <h2>{{ conversation }}</h2>
-    <p>
-        {{ conversation.get_platform_display|default:conversation.platform }}
-        {% if conversation.lead %} · <a href="{% url 'admin:crm_lead_change' conversation.lead_id %}">ver lead</a>{% endif %}
-    </p>
+    <span class="avatar">{{ conversation.initials }}</span>
+    <div>
+        <h2>{{ conversation }}</h2>
+        <p>
+            {{ conversation.get_platform_display|default:conversation.platform }}
+            {% if conversation.contact_identifier %} · {{ conversation.contact_identifier }}{% endif %}
+            {% if conversation.lead %} · <a href="{% url 'admin:crm_lead_change' conversation.lead_id %}">ver lead</a>{% endif %}
+        </p>
+    </div>
 </header>
+
+{% if conversation.window_open %}
+<div class="window-banner open">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Ventana de 24 h abierta — podés escribir libremente.
+</div>
+{% else %}
+<div class="window-banner closed">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Ventana cerrada — WhatsApp solo va a entregar plantillas aprobadas.
+</div>
+{% endif %}
+
 <div id="thread-messages">
     {% include "crm/_messages.html" %}
 </div>
@@ -22,6 +39,8 @@
 >
     {% csrf_token %}
     <input type="text" name="text" placeholder="Escribí un mensaje…" autocomplete="off" required>
-    <button type="submit">Enviar</button>
+    <button type="submit" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.94 2.94a1.5 1.5 0 0 1 1.63-.33l17 7a1.5 1.5 0 0 1 0 2.78l-17 7a1.5 1.5 0 0 1-2.07-1.74L4.5 12 2.5 5.35a1.5 1.5 0 0 1 .44-2.41Z"/></svg>
+    </button>
 </form>
 {% endblock %}

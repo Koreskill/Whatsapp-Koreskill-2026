@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 class PipelineStage(models.Model):
@@ -213,6 +216,32 @@ class Conversation(models.Model):
 
     def __str__(self):
         return self.contact_name or self.contact_identifier or self.zernio_conversation_id
+
+    @property
+    def last_message(self):
+        """Solo para mostrar una vista previa; no reemplaza `last_message_at`."""
+        return self.messages.order_by("-created_at").first()
+
+    @property
+    def window_open(self) -> bool:
+        """WhatsApp solo permite texto libre dentro de las 24 h del último entrante."""
+        last_inbound = (
+            self.messages.filter(direction=Message.Direction.IN)
+            .order_by("-created_at")
+            .first()
+        )
+        if not last_inbound:
+            return False
+        reference = last_inbound.sent_at or last_inbound.created_at
+        return timezone.now() - reference < timedelta(hours=24)
+
+    @property
+    def initials(self) -> str:
+        name = (self.contact_name or self.contact_identifier or "?").strip()
+        parts = name.split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[1][0]).upper()
+        return name[:2].upper()
 
 
 class Message(models.Model):

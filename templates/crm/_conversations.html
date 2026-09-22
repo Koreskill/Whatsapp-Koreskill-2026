@@ -1,10 +1,20 @@
-{% load static %}
 <ul class="conv-list">
     {% for c in conversations %}
-    <li class="conv-item{% if conversation and conversation.pk == c.pk %} active{% endif %}">
+    <li class="conv-item{% if conversation and conversation.pk == c.pk %} active{% endif %}" data-name="{{ c.contact_name|default:c.contact_identifier }}">
         <a href="{% url 'chat-detail' c.pk %}">
-            <strong>{{ c }}</strong>
-            <span class="conv-meta">{{ c.get_platform_display|default:c.platform }}{% if c.lead %} · lead{% endif %}</span>
+            <span class="avatar">{{ c.initials }}</span>
+            <span class="conv-body">
+                <span class="conv-top">
+                    <span class="conv-name">{{ c }}</span>
+                    {% with lm=c.last_message %}
+                    <span class="conv-time">{% if lm %}{{ lm.sent_at|default:lm.created_at|date:"H:i" }}{% endif %}</span>
+                    {% endwith %}
+                </span>
+                {% with lm=c.last_message %}
+                <p class="conv-preview">{% if lm %}{{ lm.text|default:"(sin texto)"|truncatechars:42 }}{% else %}Sin mensajes todavía{% endif %}</p>
+                {% endwith %}
+                <span class="conv-platform">{{ c.get_platform_display|default:c.platform }}</span>
+            </span>
         </a>
     </li>
     {% empty %}
