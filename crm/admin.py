@@ -1,8 +1,17 @@
 from django.contrib import admin, messages
-from django.utils import timezone
 
-from .models import Conversation, Lead, Message, Note, PipelineStage, Task
-from .zernio import ZernioError, send_message as send_zernio_message
+from .messaging import deliver_message
+from .models import (
+    AgentConfig,
+    ContactIdentity,
+    Conversation,
+    Lead,
+    Message,
+    Note,
+    PipelineStage,
+    Task,
+)
+from .zernio import ZernioError
 
 
 @admin.register(PipelineStage)
@@ -123,12 +132,24 @@ class ConversationAdmin(admin.ModelAdmin):
         "__str__",
         "platform",
         "lead",
+        "ai_enabled",
         "last_message_at",
     )
-    list_filter = ("platform",)
+    list_filter = ("platform", "ai_enabled")
     search_fields = ("contact_name", "contact_identifier", "zernio_conversation_id")
     autocomplete_fields = ("lead",)
     readonly_fields = (
+        "zernio_conversation_id",
+        "zernio_account_id",
+        "created_at",
+        "last_message_at",
+    )
+    fields = (
+        "lead",
+        "platform",
+        "ai_enabled",
+        "contact_name",
+        "contact_identifier",
         "zernio_conversation_id",
         "zernio_account_id",
         "created_at",
@@ -145,19 +166,27 @@ class ConversationAdmin(admin.ModelAdmin):
             if obj.pk:
                 obj.save()
                 continue
-            obj.direction = Message.Direction.OUT
-            obj.sent_at = timezone.now()
             try:
-                message_id = send_zernio_message(
-                    conversation_id=obj.conversation.zernio_conversation_id,
-                    account_id=obj.conversation.zernio_account_id,
-                    text=obj.text,
-                )
+                deliver_message(obj.conversation, obj.text)
             except ZernioError as exc:
                 messages.error(request, f"No se pudo enviar el mensaje: {exc}")
-                continue
-            obj.zernio_message_id = message_id or None
-            obj.save()
         for obj in formset.deleted_objects:
             obj.delete()
         formset.save_m2m()
+
+
+@admin.register(ContactIdentity)
+class ContactIdentityAdmin(admin.ModelAdmin):
+    list_display = ("lead", "platform", "external_id", "created_at")
+    list_filter = ("platform",)
+    search_fields = ("external_id", "lead__first_name", "lead__last_name")
+    autocomplete_fields = ("lead",)
+    readonly_fields = ("created_at",)
+
+
+@admin.register(AgentConfig)
+class AgentConfigAdmin(admin.ModelAdmin):
+    list_display = ("platform", "enabled", "model")
+    list_editable = ("enabled",)
+    fields = ("platform", "enabled", "model", "system_prompt")
+    readonly_fields = ("platform",)

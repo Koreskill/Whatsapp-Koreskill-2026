@@ -1,10 +1,10 @@
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, render
-from django.utils import timezone
 
-from .models import Conversation, Message
-from .zernio import ZernioError, send_message as send_zernio_message
+from .messaging import deliver_message
+from .models import Conversation, Lead, PipelineStage
+from .zernio import ZernioError
 
 
 def _conversations_qs():
@@ -45,26 +45,29 @@ def chat_send(request, pk):
 
     if text:
         try:
-            message_id = send_zernio_message(
-                conversation_id=conversation.zernio_conversation_id,
-                account_id=conversation.zernio_account_id,
-                text=text,
-            )
+            deliver_message(conversation, text)
         except ZernioError as exc:
             send_error = str(exc)
-        else:
-            Message.objects.create(
-                conversation=conversation,
-                zernio_message_id=message_id or None,
-                direction=Message.Direction.OUT,
-                text=text,
-                sent_at=timezone.now(),
-            )
-            conversation.last_message_at = timezone.now()
-            conversation.save(update_fields=["last_message_at"])
 
     return render(
         request,
         "crm/_messages.html",
         {"thread": conversation.messages.all(), "send_error": send_error},
     )
+
+
+@login_required
+def pipeline_board(request):
+    stages = PipelineStage.objects.filter(is_active=True).prefetch_related("leads")
+    return render(request, "crm/pipeline.html", {"stages": stages})
+
+
+@login_required
+def pipeline_move_lead(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest()
+    lead = get_object_or_404(Lead, pk=pk)
+    stage = get_object_or_404(PipelineStage, pk=request.POST.get("stage_id"))
+    lead.pipeline_stage = stage
+    lead.save(update_fields=["pipeline_stage"])
+    return HttpResponse(status=204)

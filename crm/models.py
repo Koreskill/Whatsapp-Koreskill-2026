@@ -207,6 +207,11 @@ class Conversation(models.Model):
     last_message_at = models.DateTimeField(
         "última actividad", null=True, blank=True, db_index=True
     )
+    ai_enabled = models.BooleanField(
+        "IA activa en esta conversación",
+        default=True,
+        help_text="Apagalo para que un asesor tome el hilo a mano sin desactivar el canal entero.",
+    )
     created_at = models.DateTimeField("creada", auto_now_add=True)
 
     class Meta:
@@ -264,6 +269,7 @@ class Message(models.Model):
     )
     direction = models.CharField("dirección", max_length=3, choices=Direction.choices)
     text = models.TextField("texto", blank=True)
+    ai_generated = models.BooleanField("generado por IA", default=False)
     sent_at = models.DateTimeField("enviado", null=True, blank=True)
     created_at = models.DateTimeField("recibido", auto_now_add=True)
 
@@ -274,3 +280,89 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.get_direction_display()}: {self.text[:40]}"
+
+
+class ContactIdentity(models.Model):
+    """Resuelve al mismo lead entre canales que no comparten teléfono.
+
+    WhatsApp casi siempre trae teléfono; Instagram y Messenger no. La
+    identidad estable en esos casos es el id que da la plataforma
+    (`participantId` de Zernio), no el teléfono.
+    """
+
+    lead = models.ForeignKey(
+        Lead, verbose_name="lead", related_name="identities", on_delete=models.CASCADE
+    )
+    platform = models.CharField(
+        "plataforma", max_length=20, choices=Conversation.Platform.choices
+    )
+    external_id = models.CharField("id externo", max_length=200)
+    created_at = models.DateTimeField("creada", auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["platform", "external_id"], name="unique_platform_external_id"
+            )
+        ]
+        verbose_name = "identidad de contacto"
+        verbose_name_plural = "identidades de contacto"
+
+    def __str__(self):
+        return f"{self.platform}:{self.external_id} → {self.lead}"
+
+
+class WebhookEvent(models.Model):
+    """Ficha de idempotencia: reclama un evento por su id antes de procesarlo.
+
+    Zernio entrega at-least-once (puede reintentar el mismo evento). Sin
+    esto, un reintento simultáneo podría procesarse dos veces antes de que
+    el primero termine de guardar nada.
+    """
+
+    event_id = models.CharField("id de evento", max_length=200, primary_key=True)
+    provider = models.CharField("proveedor", max_length=20, default="zernio")
+    received_at = models.DateTimeField("recibido", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "evento de webhook"
+        verbose_name_plural = "eventos de webhook"
+
+    def __str__(self):
+        return self.event_id
+
+
+class AgentConfig(models.Model):
+    """Configuración del agente de IA, una fila por canal.
+
+    Los canales arrancan apagados a propósito: activarlo por accidente antes
+    de revisar el prompt significa contestarle a clientes reales con un
+    prompt sin probar.
+    """
+
+    platform = models.CharField(
+        "plataforma", max_length=20, choices=Conversation.Platform.choices, unique=True
+    )
+    enabled = models.BooleanField("activo", default=False)
+    system_prompt = models.TextField(
+        "prompt del sistema",
+        blank=True,
+        default=(
+            "Sos el asistente de una inmobiliaria. Respondé breve y en "
+            "español, ayudando a entender qué busca la persona (operación, "
+            "zona, presupuesto). No inventes datos de propiedades."
+        ),
+    )
+    model = models.CharField(
+        "modelo",
+        max_length=100,
+        blank=True,
+        help_text="Vacío usa el modelo por defecto (OPENAI_MODEL).",
+    )
+
+    class Meta:
+        verbose_name = "configuración del agente"
+        verbose_name_plural = "configuraciones del agente"
+
+    def __str__(self):
+        return f"Agente {self.get_platform_display()}"

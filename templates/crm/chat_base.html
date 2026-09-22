@@ -18,7 +18,7 @@
     --bubble-out-ink: #14532d;
   }
 
-  .chat-layout { display: flex; height: 100vh; background: var(--bg); }
+  .chat-layout { display: flex; flex: 1; min-height: 0; background: var(--bg); }
 
   /* Sidebar */
   .chat-sidebar { width: 320px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
@@ -92,6 +92,7 @@
 {% endblock %}
 
 {% block content %}
+{% include "crm/_nav.html" %}
 <div class="chat-layout{% if conversation %} has-conversation{% endif %}">
     <aside class="chat-sidebar">
         <div class="sidebar-head">

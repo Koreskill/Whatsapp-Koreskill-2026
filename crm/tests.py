@@ -10,7 +10,19 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from .models import Conversation, Lead, Message, Note, PipelineStage, Task
+from . import agent
+from .messaging import deliver_message
+from .models import (
+    AgentConfig,
+    ContactIdentity,
+    Conversation,
+    Lead,
+    Message,
+    Note,
+    PipelineStage,
+    Task,
+    WebhookEvent,
+)
 from .zernio import ZernioError, send_message
 
 
@@ -76,8 +88,9 @@ class ZernioWebhookTests(TestCase):
             HTTP_X_ZERNIO_SIGNATURE=signature,
         )
 
-    def _incoming_message_payload(self):
+    def _incoming_message_payload(self, event_id="evt_1"):
         return {
+            "id": event_id,
             "event": "message.received",
             "message": {
                 "id": "msg_1",
@@ -124,7 +137,7 @@ class ZernioWebhookTests(TestCase):
             zernio_conversation_id="conv_1"
         ).lead
 
-        payload = self._incoming_message_payload()
+        payload = self._incoming_message_payload(event_id="evt_2")
         payload["message"]["id"] = "msg_2"
         payload["message"]["text"] = "Sigo interesado"
         self._post(payload)
@@ -133,6 +146,51 @@ class ZernioWebhookTests(TestCase):
         self.assertEqual(conversation.messages.count(), 2)
         self.assertEqual(conversation.lead_id, lead_first_time.id)
         self.assertEqual(Lead.objects.filter(phone="+5491111111111").count(), 1)
+
+    @override_settings(ZERNIO_WEBHOOK_SECRET="test-secret")
+    def test_retried_event_is_not_processed_twice(self):
+        payload = self._incoming_message_payload()
+
+        first = self._post(payload)
+        second = self._post(payload)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(WebhookEvent.objects.count(), 1)
+        conversation = Conversation.objects.get(zernio_conversation_id="conv_1")
+        self.assertEqual(conversation.messages.count(), 1)
+
+    @override_settings(ZERNIO_WEBHOOK_SECRET="test-secret")
+    def test_same_person_on_instagram_links_to_existing_lead_by_identity(self):
+        self._post(self._incoming_message_payload())
+        lead = Conversation.objects.get(zernio_conversation_id="conv_1").lead
+        ContactIdentity.objects.create(
+            lead=lead, platform="instagram", external_id="ig_juan"
+        )
+
+        payload = {
+            "id": "evt_ig_1",
+            "event": "message.received",
+            "message": {
+                "id": "msg_ig_1",
+                "conversationId": "conv_ig_1",
+                "direction": "incoming",
+                "text": "Hola desde Instagram",
+                "sender": {"name": "Juan Pérez", "id": "ig_juan"},
+                "sentAt": "2026-01-01T00:00:00Z",
+            },
+            "conversation": {
+                "id": "conv_ig_1",
+                "participantId": "ig_juan",
+                "participantName": "Juan Pérez",
+            },
+            "account": {"id": "acc_ig_1", "platform": "instagram"},
+        }
+        self._post(payload)
+
+        ig_conversation = Conversation.objects.get(zernio_conversation_id="conv_ig_1")
+        self.assertEqual(ig_conversation.lead_id, lead.id)
+        self.assertEqual(Lead.objects.count(), 1)
 
 
 class SendZernioMessageTests(TestCase):
@@ -187,7 +245,7 @@ class ChatViewsTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Hola, busco depto")
 
-    @patch("crm.views.send_zernio_message")
+    @patch("crm.messaging.send_zernio_message")
     def test_chat_send_creates_outgoing_message(self, mock_send):
         mock_send.return_value = "wamid.abc"
         self.client.force_login(self.user)
@@ -204,7 +262,7 @@ class ChatViewsTests(TestCase):
             conversation_id="conv_1", account_id="acc_1", text="Hola, en qué te ayudo"
         )
 
-    @patch("crm.views.send_zernio_message", side_effect=ZernioError("401"))
+    @patch("crm.messaging.send_zernio_message", side_effect=ZernioError("401"))
     def test_chat_send_shows_error_without_saving(self, mock_send):
         self.client.force_login(self.user)
 
@@ -216,3 +274,94 @@ class ChatViewsTests(TestCase):
             self.conversation.messages.filter(direction=Message.Direction.OUT).count(),
             0,
         )
+
+
+class DeliverMessageTests(TestCase):
+    def setUp(self):
+        self.conversation = Conversation.objects.create(
+            zernio_conversation_id="conv_1", zernio_account_id="acc_1", platform="whatsapp"
+        )
+
+    @patch("crm.messaging.send_zernio_message")
+    def test_delivers_and_persists_in_one_call(self, mock_send):
+        mock_send.return_value = "wamid.xyz"
+
+        message = deliver_message(self.conversation, "Hola", ai_generated=True)
+
+        self.assertEqual(message.zernio_message_id, "wamid.xyz")
+        self.assertTrue(message.ai_generated)
+        self.assertEqual(message.direction, Message.Direction.OUT)
+        self.conversation.refresh_from_db()
+        self.assertIsNotNone(self.conversation.last_message_at)
+
+    @patch("crm.messaging.send_zernio_message", side_effect=ZernioError("boom"))
+    def test_does_not_persist_when_send_fails(self, mock_send):
+        with self.assertRaises(ZernioError):
+            deliver_message(self.conversation, "Hola")
+        self.assertEqual(self.conversation.messages.count(), 0)
+
+
+class AgentTests(TestCase):
+    def setUp(self):
+        self.conversation = Conversation.objects.create(
+            zernio_conversation_id="conv_1", zernio_account_id="acc_1", platform="whatsapp"
+        )
+        Message.objects.create(
+            conversation=self.conversation, direction=Message.Direction.IN, text="Hola"
+        )
+
+    def test_disabled_channel_does_not_respond(self):
+        # El seed deja whatsapp apagado por defecto.
+        self.assertIsNone(agent.maybe_respond(self.conversation))
+
+    def test_conversation_switch_overrides_channel(self):
+        AgentConfig.objects.filter(platform="whatsapp").update(enabled=True)
+        self.conversation.ai_enabled = False
+        self.conversation.save(update_fields=["ai_enabled"])
+
+        self.assertIsNone(agent.maybe_respond(self.conversation))
+
+    @override_settings(OPENAI_API_KEY="test-key")
+    @patch("crm.agent.deliver_message")
+    @patch("crm.agent._openai_reply")
+    def test_replies_and_delivers_when_both_switches_on(
+        self, mock_reply, mock_deliver
+    ):
+        AgentConfig.objects.filter(platform="whatsapp").update(enabled=True)
+        mock_reply.return_value = "¡Hola! ¿En qué puedo ayudarte?"
+
+        agent.maybe_respond(self.conversation)
+
+        mock_deliver.assert_called_once_with(
+            self.conversation, "¡Hola! ¿En qué puedo ayudarte?", ai_generated=True
+        )
+
+
+class PipelineViewsTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="asesor", password="clave-segura-123"
+        )
+        self.stage_new = PipelineStage.objects.get(name="Nuevo")
+        self.stage_contacted = PipelineStage.objects.get(name="Contactado")
+        self.lead = Lead.objects.create(first_name="Ana", pipeline_stage=self.stage_new)
+
+    def test_board_requires_login(self):
+        res = self.client.get("/pipeline/")
+        self.assertEqual(res.status_code, 302)
+
+    def test_board_lists_leads_by_stage(self):
+        self.client.force_login(self.user)
+        res = self.client.get("/pipeline/")
+        self.assertContains(res, "Ana")
+        self.assertContains(res, "Nuevo")
+
+    def test_move_lead_updates_stage(self):
+        self.client.force_login(self.user)
+        res = self.client.post(
+            f"/pipeline/leads/{self.lead.pk}/move/",
+            {"stage_id": self.stage_contacted.pk},
+        )
+        self.assertEqual(res.status_code, 204)
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.pipeline_stage, self.stage_contacted)

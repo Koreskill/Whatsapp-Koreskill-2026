@@ -37,6 +37,9 @@ ZERNIO_API_KEY = os.getenv("ZERNIO_API_KEY")
 ZERNIO_WEBHOOK_SECRET = os.getenv("ZERNIO_WEBHOOK_SECRET")
 ZERNIO_BASE_URL = os.getenv("ZERNIO_BASE_URL", "https://zernio.com/api/v1")
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
