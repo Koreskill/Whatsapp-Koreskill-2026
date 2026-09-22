@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import json
+import logging
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseForbidden
@@ -12,6 +13,8 @@ from django.views.decorators.http import require_POST
 
 from . import agent
 from .models import ContactIdentity, Conversation, Lead, Message, PipelineStage, WebhookEvent
+
+logger = logging.getLogger(__name__)
 
 
 def _valid_signature(raw_body: bytes, signature: str | None) -> bool:
@@ -146,9 +149,11 @@ def zernio_webhook(request):
     if saved_incoming:
         try:
             agent.maybe_respond(conversation)
-        except agent.AgentError:
+        except agent.AgentError as exc:
             # El agente es una comodidad, no el contrato del webhook: un
             # fallo de OpenAI no puede tumbar la recepción del mensaje real.
-            pass
+            # Igual queda loggeado para poder diagnosticarlo (sin cuerpos ni
+            # claves: `exc` ya viene con el detalle recortado).
+            logger.warning("Fallo el agente de IA en conversación %s: %s", conversation.pk, exc)
 
     return HttpResponse(status=200)
