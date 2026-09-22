@@ -245,6 +245,27 @@ class ChatViewsTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Hola, busco depto")
 
+    def test_chat_thread_endpoint_reflects_new_messages(self):
+        self.client.force_login(self.user)
+        Message.objects.create(
+            conversation=self.conversation,
+            direction=Message.Direction.IN,
+            text="Mensaje nuevo que llegó por webhook",
+        )
+
+        res = self.client.get(f"/chat/{self.conversation.pk}/thread/")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Mensaje nuevo que llegó por webhook")
+
+    def test_chat_sidebar_endpoint_marks_active_conversation(self):
+        self.client.force_login(self.user)
+
+        res = self.client.get(f"/chat/sidebar/?active={self.conversation.pk}")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'class="conv-item active"')
+
     @patch("crm.messaging.send_zernio_message")
     def test_chat_send_creates_outgoing_message(self, mock_send):
         mock_send.return_value = "wamid.abc"

@@ -102,7 +102,15 @@
                 <input type="text" placeholder="Buscar por nombre…" oninput="filterConversations(this.value)">
             </div>
         </div>
-        {% include "crm/_conversations.html" %}
+        <div
+            id="conversations-list"
+            hx-get="{% url 'chat-sidebar' %}{% if conversation %}?active={{ conversation.pk }}{% endif %}"
+            hx-trigger="every 6s"
+            hx-swap="innerHTML"
+            hx-on::after-swap="filterConversations(document.querySelector('.sidebar-search input').value)"
+        >
+            {% include "crm/_conversations.html" %}
+        </div>
     </aside>
     <section class="chat-main">
         {% block chat_main %}{% endblock %}

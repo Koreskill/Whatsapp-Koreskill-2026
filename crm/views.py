@@ -35,6 +35,25 @@ def chat_detail(request, pk):
 
 
 @login_required
+def chat_thread(request, pk):
+    conversation = get_object_or_404(Conversation, pk=pk)
+    return render(
+        request, "crm/_messages.html", {"thread": conversation.messages.all()}
+    )
+
+
+@login_required
+def chat_sidebar(request):
+    active_pk = request.GET.get("active")
+    conversation = Conversation.objects.filter(pk=active_pk).first() if active_pk else None
+    return render(
+        request,
+        "crm/_conversations.html",
+        {"conversations": _conversations_qs(), "conversation": conversation},
+    )
+
+
+@login_required
 def chat_send(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest()
