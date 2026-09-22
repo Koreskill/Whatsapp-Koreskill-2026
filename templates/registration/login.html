@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Ingresar | CRM Inmobiliario{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>CRM Inmobiliario</h1>
+    <p>Ingresá con tu cuenta para continuar.</p>
+
+    {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <button type="submit">Ingresar</button>
+    </form>
+</section>
+{% endblock %}
