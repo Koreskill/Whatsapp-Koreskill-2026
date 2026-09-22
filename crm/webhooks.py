@@ -10,7 +10,7 @@ from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import Conversation, Message
+from .models import Conversation, Lead, Message, PipelineStage
 
 
 def _valid_signature(raw_body: bytes, signature: str | None) -> bool:
@@ -19,6 +19,28 @@ def _valid_signature(raw_body: bytes, signature: str | None) -> bool:
         return False
     expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature.strip().lower())
+
+
+def _find_or_create_lead(contact_name: str | None, phone: str | None) -> Lead | None:
+    """Vincula por teléfono, la única evidencia confiable que manda Zernio.
+
+    Sin teléfono no se crea nada: inventar un lead sin dato de contacto
+    violaría la regla de no completar información sin evidencia.
+    """
+    if not phone:
+        return None
+    existing = Lead.objects.filter(phone=phone).first()
+    if existing:
+        return existing
+    first_name, _, last_name = (contact_name or phone).partition(" ")
+    first_stage = PipelineStage.objects.filter(is_active=True).order_by("order").first()
+    return Lead.objects.create(
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        source="whatsapp",
+        pipeline_stage=first_stage,
+    )
 
 
 @csrf_exempt
@@ -52,12 +74,11 @@ def zernio_webhook(request):
         },
     )
 
-    contact_name = conv.get("participantName") or (message.get("sender") or {}).get(
-        "name"
-    )
-    contact_identifier = conv.get("participantId") or (
-        message.get("sender") or {}
-    ).get("phoneNumber")
+    sender = message.get("sender") or {}
+    contact_name = conv.get("participantName") or sender.get("name")
+    # El teléfono con "+" de `sender` es más confiable para matchear leads
+    # que el `participantId` de la conversación (que a veces llega sin "+").
+    contact_identifier = sender.get("phoneNumber") or conv.get("participantId")
     changed_fields = []
     if contact_name and conversation.contact_name != contact_name:
         conversation.contact_name = contact_name
@@ -65,6 +86,11 @@ def zernio_webhook(request):
     if contact_identifier and conversation.contact_identifier != contact_identifier:
         conversation.contact_identifier = contact_identifier
         changed_fields.append("contact_identifier")
+    if conversation.lead_id is None:
+        lead = _find_or_create_lead(contact_name, contact_identifier)
+        if lead:
+            conversation.lead = lead
+            changed_fields.append("lead")
     conversation.last_message_at = timezone.now()
     changed_fields.append("last_message_at")
     conversation.save(update_fields=changed_fields)
