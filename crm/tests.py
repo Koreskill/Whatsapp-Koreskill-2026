@@ -386,3 +386,28 @@ class PipelineViewsTests(TestCase):
         self.assertEqual(res.status_code, 204)
         self.lead.refresh_from_db()
         self.assertEqual(self.lead.pipeline_stage, self.stage_contacted)
+
+
+class DashboardViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="asesor", password="clave-segura-123"
+        )
+        self.stage_new = PipelineStage.objects.get(name="Nuevo")
+        self.stage_closed = PipelineStage.objects.get(name="Cerrado")
+        self.stage_lost = PipelineStage.objects.get(name="Perdido")
+        Lead.objects.create(first_name="Ana", pipeline_stage=self.stage_new)
+        Lead.objects.create(first_name="Beto", pipeline_stage=self.stage_closed)
+        Lead.objects.create(first_name="Cami", pipeline_stage=self.stage_lost)
+
+    def test_dashboard_requires_login(self):
+        res = self.client.get("/dashboard/")
+        self.assertEqual(res.status_code, 302)
+
+    def test_dashboard_shows_kpis(self):
+        self.client.force_login(self.user)
+        res = self.client.get("/dashboard/")
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Leads totales")
+        # 1 ganado de 2 decididos (Cerrado + Perdido) = 50%
+        self.assertContains(res, "50%")

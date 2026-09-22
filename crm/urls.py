@@ -4,6 +4,7 @@ from . import views, webhooks
 
 urlpatterns = [
     path("webhooks/zernio/", webhooks.zernio_webhook, name="zernio-webhook"),
+    path("dashboard/", views.dashboard, name="dashboard"),
     path("chat/", views.chat_list, name="chat-list"),
     path("chat/sidebar/", views.chat_sidebar, name="chat-sidebar"),
     path("chat/<int:pk>/", views.chat_detail, name="chat-detail"),
