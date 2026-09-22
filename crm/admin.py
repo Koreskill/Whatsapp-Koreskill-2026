@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lead, Note, PipelineStage, Task
+from .models import Conversation, Lead, Message, Note, PipelineStage, Task
 
 
 @admin.register(PipelineStage)
@@ -98,3 +98,31 @@ class NoteAdmin(admin.ModelAdmin):
     search_fields = ("text", "lead__first_name", "lead__last_name")
     autocomplete_fields = ("lead", "author")
     readonly_fields = ("created_at",)
+
+
+class MessageInline(admin.TabularInline):
+    model = Message
+    extra = 0
+    fields = ("direction", "text", "sent_at")
+    readonly_fields = ("direction", "text", "sent_at")
+    can_delete = False
+
+
+@admin.register(Conversation)
+class ConversationAdmin(admin.ModelAdmin):
+    list_display = (
+        "__str__",
+        "platform",
+        "lead",
+        "last_message_at",
+    )
+    list_filter = ("platform",)
+    search_fields = ("contact_name", "contact_identifier", "zernio_conversation_id")
+    autocomplete_fields = ("lead",)
+    readonly_fields = (
+        "zernio_conversation_id",
+        "zernio_account_id",
+        "created_at",
+        "last_message_at",
+    )
+    inlines = (MessageInline,)

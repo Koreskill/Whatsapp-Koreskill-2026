@@ -33,6 +33,8 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
+ZERNIO_API_KEY = os.getenv("ZERNIO_API_KEY")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

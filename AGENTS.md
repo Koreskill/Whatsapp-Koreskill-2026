@@ -18,8 +18,8 @@ Leer este archivo completo antes de modificar el repositorio.
 
 - `users`: autenticación y, solo cuando sea necesario, datos de usuarios.
 - `crm`: leads, pipeline, requisitos inmobiliarios, tareas, notas y actividad comercial.
-- Chatwoot será el motor de comunicaciones multicanal; no duplicar un chat propio.
-- OpenAI y Chatwoot se incorporarán en fases posteriores, no antes de que el CRM base sea estable.
+- Zernio es el puente entre Meta (WhatsApp/Instagram/Messenger) y el CRM: el CRM implementa su propia interfaz de chat, que replica las conversaciones que llegan por Zernio (decisión 2026-09-22; reemplaza el plan anterior de usar Chatwoot).
+- OpenAI se incorporará en una fase posterior, no antes de que el CRM base sea estable.
 - No implementar multitenancy complejo hasta que exista una necesidad real.
 
 ## Flujo para cada cambio

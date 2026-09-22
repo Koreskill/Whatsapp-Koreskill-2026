@@ -172,3 +172,76 @@ class Note(models.Model):
 
     def __str__(self):
         return f"Nota de {self.author or 'sistema'} para {self.lead}"
+
+
+class Conversation(models.Model):
+    class Platform(models.TextChoices):
+        WHATSAPP = "whatsapp", "WhatsApp"
+        INSTAGRAM = "instagram", "Instagram"
+        MESSENGER = "messenger", "Messenger"
+
+    lead = models.ForeignKey(
+        Lead,
+        verbose_name="lead",
+        related_name="conversations",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    zernio_conversation_id = models.CharField(
+        "id de conversación en Zernio", max_length=200, unique=True
+    )
+    zernio_account_id = models.CharField(
+        "id de cuenta en Zernio", max_length=200, blank=True
+    )
+    platform = models.CharField(
+        "plataforma", max_length=20, choices=Platform.choices, blank=True
+    )
+    contact_name = models.CharField("nombre de contacto", max_length=200, blank=True)
+    contact_identifier = models.CharField(
+        "identificador de contacto", max_length=200, blank=True
+    )
+    last_message_at = models.DateTimeField(
+        "última actividad", null=True, blank=True, db_index=True
+    )
+    created_at = models.DateTimeField("creada", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-last_message_at",)
+        verbose_name = "conversación"
+        verbose_name_plural = "conversaciones"
+
+    def __str__(self):
+        return self.contact_name or self.contact_identifier or self.zernio_conversation_id
+
+
+class Message(models.Model):
+    class Direction(models.TextChoices):
+        IN = "in", "Entrante"
+        OUT = "out", "Saliente"
+
+    conversation = models.ForeignKey(
+        Conversation,
+        verbose_name="conversación",
+        related_name="messages",
+        on_delete=models.CASCADE,
+    )
+    zernio_message_id = models.CharField(
+        "id de mensaje en Zernio",
+        max_length=200,
+        unique=True,
+        null=True,
+        blank=True,
+    )
+    direction = models.CharField("dirección", max_length=3, choices=Direction.choices)
+    text = models.TextField("texto", blank=True)
+    sent_at = models.DateTimeField("enviado", null=True, blank=True)
+    created_at = models.DateTimeField("recibido", auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = "mensaje"
+        verbose_name_plural = "mensajes"
+
+    def __str__(self):
+        return f"{self.get_direction_display()}: {self.text[:40]}"
