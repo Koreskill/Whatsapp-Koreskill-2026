@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block body_class %}app{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+<style>
+  .chat-layout { display: flex; height: 100vh; }
+  .chat-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid #e5e9ed; overflow-y: auto; }
+  .chat-sidebar h1 { font-size: 1.05rem; margin: 0; padding: 16px; border-bottom: 1px solid #e5e9ed; }
+  .conv-list { list-style: none; margin: 0; padding: 0; }
+  .conv-item a { display: block; padding: 12px 16px; text-decoration: none; color: inherit; border-bottom: 1px solid #f0f2f4; }
+  .conv-item a:hover, .conv-item.active a { background: #eef2ff; }
+  .conv-item strong { display: block; font-size: .92rem; }
+  .conv-meta { font-size: .78rem; color: #7a8794; }
+  .conv-empty { padding: 16px; color: #7a8794; font-size: .85rem; }
+  .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .chat-header { padding: 14px 20px; border-bottom: 1px solid #e5e9ed; background: #fff; }
+  .chat-header h2 { margin: 0; font-size: 1rem; }
+  .chat-header p { margin: 2px 0 0; font-size: .8rem; color: #7a8794; }
+  #thread-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; background: #f4f6f8; }
+  .msg { max-width: 60%; padding: 8px 12px; border-radius: 10px; font-size: .9rem; }
+  .msg-in { align-self: flex-start; background: #fff; border: 1px solid #e5e9ed; }
+  .msg-out { align-self: flex-end; background: #1d4ed8; color: #fff; }
+  .msg-meta { display: block; font-size: .68rem; opacity: .65; margin-top: 4px; }
+  .thread-empty, .chat-empty { color: #7a8794; padding: 24px; }
+  .send-error { color: #b42318; font-size: .82rem; padding: 0 20px 8px; }
+  .composer { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid #e5e9ed; background: #fff; }
+  .composer input { flex: 1; border: 1px solid #cfd6dd; border-radius: 8px; padding: 10px 12px; font: inherit; }
+  .composer button { border: 0; border-radius: 8px; padding: 10px 18px; background: #1d4ed8; color: #fff; font: inherit; font-weight: 600; cursor: pointer; width: auto; margin: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+    <aside class="chat-sidebar">
+        <h1>Bandeja</h1>
+        {% include "crm/_conversations.html" %}
+    </aside>
+    <section class="chat-main">
+        {% block chat_main %}{% endblock %}
+    </section>
+</div>
+{% endblock %}

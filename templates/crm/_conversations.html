@@ -1,0 +1,13 @@
+{% load static %}
+<ul class="conv-list">
+    {% for c in conversations %}
+    <li class="conv-item{% if conversation and conversation.pk == c.pk %} active{% endif %}">
+        <a href="{% url 'chat-detail' c.pk %}">
+            <strong>{{ c }}</strong>
+            <span class="conv-meta">{{ c.get_platform_display|default:c.platform }}{% if c.lead %} · lead{% endif %}</span>
+        </a>
+    </li>
+    {% empty %}
+    <li class="conv-empty">Todavía no llegó ninguna conversación.</li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,27 @@
+{% extends "crm/chat_base.html" %}
+
+{% block title %}{{ conversation }} | CRM Inmobiliario{% endblock %}
+
+{% block chat_main %}
+<header class="chat-header">
+    <h2>{{ conversation }}</h2>
+    <p>
+        {{ conversation.get_platform_display|default:conversation.platform }}
+        {% if conversation.lead %} · <a href="{% url 'admin:crm_lead_change' conversation.lead_id %}">ver lead</a>{% endif %}
+    </p>
+</header>
+<div id="thread-messages">
+    {% include "crm/_messages.html" %}
+</div>
+<form
+    class="composer"
+    hx-post="{% url 'chat-send' conversation.pk %}"
+    hx-target="#thread-messages"
+    hx-swap="innerHTML"
+    hx-on::after-request="this.reset()"
+>
+    {% csrf_token %}
+    <input type="text" name="text" placeholder="Escribí un mensaje…" autocomplete="off" required>
+    <button type="submit">Enviar</button>
+</form>
+{% endblock %}

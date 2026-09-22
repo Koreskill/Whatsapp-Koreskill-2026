@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from .models import Conversation, Lead, Note, PipelineStage, Task
+from .models import Conversation, Lead, Message, Note, PipelineStage, Task
 from .zernio import ZernioError, send_message
 
 
@@ -158,3 +158,61 @@ class SendZernioMessageTests(TestCase):
     def test_requires_api_key(self):
         with self.assertRaises(ZernioError):
             send_message("conv_1", "acc_1", "Hola")
+
+
+class ChatViewsTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="asesor", password="clave-segura-123"
+        )
+        self.conversation = Conversation.objects.create(
+            zernio_conversation_id="conv_1",
+            zernio_account_id="acc_1",
+            platform="whatsapp",
+            contact_name="Juan Pérez",
+        )
+        Message.objects.create(
+            conversation=self.conversation,
+            direction=Message.Direction.IN,
+            text="Hola, busco depto",
+        )
+
+    def test_chat_list_requires_login(self):
+        res = self.client.get("/chat/")
+        self.assertEqual(res.status_code, 302)
+
+    def test_chat_detail_shows_thread(self):
+        self.client.force_login(self.user)
+        res = self.client.get(f"/chat/{self.conversation.pk}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Hola, busco depto")
+
+    @patch("crm.views.send_zernio_message")
+    def test_chat_send_creates_outgoing_message(self, mock_send):
+        mock_send.return_value = "wamid.abc"
+        self.client.force_login(self.user)
+
+        res = self.client.post(
+            f"/chat/{self.conversation.pk}/send/", {"text": "Hola, en qué te ayudo"}
+        )
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Hola, en qué te ayudo")
+        message = self.conversation.messages.get(direction=Message.Direction.OUT)
+        self.assertEqual(message.zernio_message_id, "wamid.abc")
+        mock_send.assert_called_once_with(
+            conversation_id="conv_1", account_id="acc_1", text="Hola, en qué te ayudo"
+        )
+
+    @patch("crm.views.send_zernio_message", side_effect=ZernioError("401"))
+    def test_chat_send_shows_error_without_saving(self, mock_send):
+        self.client.force_login(self.user)
+
+        res = self.client.post(f"/chat/{self.conversation.pk}/send/", {"text": "Hola"})
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "No se pudo enviar")
+        self.assertEqual(
+            self.conversation.messages.filter(direction=Message.Direction.OUT).count(),
+            0,
+        )

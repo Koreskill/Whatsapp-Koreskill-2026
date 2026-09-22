@@ -17,9 +17,12 @@
         input:focus { outline: 3px solid #dbeafe; border-color: #2563eb; }
         button { width: 100%; margin-top: 22px; border: 0; border-radius: 8px; padding: 12px; background: #1d4ed8; color: white; font: inherit; font-weight: 700; cursor: pointer; }
         .errorlist { color: #b42318; padding-left: 20px; }
+        /* Páginas "app" (chat, etc.) usan todo el ancho en vez de la tarjeta centrada del login. */
+        body.app main { display: block; place-items: initial; padding: 0; min-height: 100vh; }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <main>{% block content %}{% endblock %}</main>
 </body>
 </html>
