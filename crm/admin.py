@@ -1,6 +1,8 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.utils import timezone
 
 from .models import Conversation, Lead, Message, Note, PipelineStage, Task
+from .zernio import ZernioError, send_message as send_zernio_message
 
 
 @admin.register(PipelineStage)
@@ -101,10 +103,17 @@ class NoteAdmin(admin.ModelAdmin):
 
 
 class MessageInline(admin.TabularInline):
+    """Historial de solo lectura, con una fila vacía al final para responder.
+
+    Un mensaje nuevo escrito acá siempre es saliente: `ConversationAdmin`
+    lo manda por la API de Zernio antes de guardarlo. Los mensajes ya
+    guardados quedan de solo lectura para no reescribir el historial.
+    """
+
     model = Message
-    extra = 0
+    extra = 1
     fields = ("direction", "text", "sent_at")
-    readonly_fields = ("direction", "text", "sent_at")
+    readonly_fields = ("direction", "sent_at")
     can_delete = False
 
 
@@ -126,3 +135,29 @@ class ConversationAdmin(admin.ModelAdmin):
         "last_message_at",
     )
     inlines = (MessageInline,)
+
+    def save_formset(self, request, form, formset, change):
+        if formset.model is not Message:
+            super().save_formset(request, form, formset, change)
+            return
+
+        for obj in formset.save(commit=False):
+            if obj.pk:
+                obj.save()
+                continue
+            obj.direction = Message.Direction.OUT
+            obj.sent_at = timezone.now()
+            try:
+                message_id = send_zernio_message(
+                    conversation_id=obj.conversation.zernio_conversation_id,
+                    account_id=obj.conversation.zernio_account_id,
+                    text=obj.text,
+                )
+            except ZernioError as exc:
+                messages.error(request, f"No se pudo enviar el mensaje: {exc}")
+                continue
+            obj.zernio_message_id = message_id or None
+            obj.save()
+        for obj in formset.deleted_objects:
+            obj.delete()
+        formset.save_m2m()

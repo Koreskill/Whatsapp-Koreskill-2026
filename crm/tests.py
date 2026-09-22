@@ -3,6 +3,7 @@ import hmac
 import json
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -10,6 +11,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from .models import Conversation, Lead, Note, PipelineStage, Task
+from .zernio import ZernioError, send_message
 
 
 class CrmModelsTests(TestCase):
@@ -131,3 +133,28 @@ class ZernioWebhookTests(TestCase):
         self.assertEqual(conversation.messages.count(), 2)
         self.assertEqual(conversation.lead_id, lead_first_time.id)
         self.assertEqual(Lead.objects.filter(phone="+5491111111111").count(), 1)
+
+
+class SendZernioMessageTests(TestCase):
+    @override_settings(ZERNIO_API_KEY="test-key")
+    @patch("crm.zernio.urllib.request.urlopen")
+    def test_returns_platform_message_id(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(
+            {"message": {"id": "wamid.123"}}
+        ).encode()
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
+
+        message_id = send_message("conv_1", "acc_1", "Hola")
+
+        self.assertEqual(message_id, "wamid.123")
+        sent_request = mock_urlopen.call_args[0][0]
+        self.assertEqual(
+            sent_request.get_header("Authorization"), "Bearer test-key"
+        )
+
+    @override_settings(ZERNIO_API_KEY=None)
+    def test_requires_api_key(self):
+        with self.assertRaises(ZernioError):
+            send_message("conv_1", "acc_1", "Hola")

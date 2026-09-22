@@ -35,6 +35,7 @@ CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 ZERNIO_API_KEY = os.getenv("ZERNIO_API_KEY")
 ZERNIO_WEBHOOK_SECRET = os.getenv("ZERNIO_WEBHOOK_SECRET")
+ZERNIO_BASE_URL = os.getenv("ZERNIO_BASE_URL", "https://zernio.com/api/v1")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
