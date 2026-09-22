@@ -34,6 +34,7 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 ZERNIO_API_KEY = os.getenv("ZERNIO_API_KEY")
+ZERNIO_WEBHOOK_SECRET = os.getenv("ZERNIO_WEBHOOK_SECRET")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

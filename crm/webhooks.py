@@ -14,7 +14,7 @@ from .models import Conversation, Message
 
 
 def _valid_signature(raw_body: bytes, signature: str | None) -> bool:
-    secret = settings.ZERNIO_API_KEY
+    secret = settings.ZERNIO_WEBHOOK_SECRET
     if not secret or not signature:
         return False
     expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
@@ -24,9 +24,7 @@ def _valid_signature(raw_body: bytes, signature: str | None) -> bool:
 @csrf_exempt
 @require_POST
 def zernio_webhook(request):
-    signature = request.headers.get("X-Zernio-Signature") or request.headers.get(
-        "X-Late-Signature"
-    )
+    signature = request.headers.get("X-Zernio-Signature")
     if not _valid_signature(request.body, signature):
         return HttpResponseForbidden("firma inválida")
 
@@ -35,9 +33,14 @@ def zernio_webhook(request):
     except ValueError:
         return HttpResponse(status=400)
 
+    if payload.get("event") != "message.received":
+        return HttpResponse(status=200)
+
     account = payload.get("account") or {}
+    conv = payload.get("conversation") or {}
     message = payload.get("message") or {}
-    conversation_id = message.get("conversationId")
+
+    conversation_id = conv.get("id") or message.get("conversationId")
     if not conversation_id:
         return HttpResponse(status=200)
 
@@ -49,11 +52,19 @@ def zernio_webhook(request):
         },
     )
 
-    sender = message.get("sender") or {}
+    contact_name = conv.get("participantName") or (message.get("sender") or {}).get(
+        "name"
+    )
+    contact_identifier = conv.get("participantId") or (
+        message.get("sender") or {}
+    ).get("phoneNumber")
     changed_fields = []
-    if sender.get("name") and conversation.contact_name != sender["name"]:
-        conversation.contact_name = sender["name"]
+    if contact_name and conversation.contact_name != contact_name:
+        conversation.contact_name = contact_name
         changed_fields.append("contact_name")
+    if contact_identifier and conversation.contact_identifier != contact_identifier:
+        conversation.contact_identifier = contact_identifier
+        changed_fields.append("contact_identifier")
     conversation.last_message_at = timezone.now()
     changed_fields.append("last_message_at")
     conversation.save(update_fields=changed_fields)
@@ -66,7 +77,7 @@ def zernio_webhook(request):
             defaults={
                 "conversation": conversation,
                 "direction": Message.Direction.OUT
-                if message.get("direction") == "out"
+                if message.get("direction") == "outgoing"
                 else Message.Direction.IN,
                 "text": message.get("text") or "",
                 "sent_at": parse_datetime(sent_at_raw) if sent_at_raw else None,
