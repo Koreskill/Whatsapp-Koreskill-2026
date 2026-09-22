@@ -19,7 +19,10 @@ Leer este archivo completo antes de modificar el repositorio.
 - `users`: autenticación y, solo cuando sea necesario, datos de usuarios.
 - `crm`: leads, pipeline, requisitos inmobiliarios, tareas, notas y actividad comercial.
 - Zernio es el puente entre Meta (WhatsApp/Instagram/Messenger) y el CRM: el CRM implementa su propia interfaz de chat, que replica las conversaciones que llegan por Zernio (decisión 2026-09-22; reemplaza el plan anterior de usar Chatwoot).
-- OpenAI se incorporará en una fase posterior, no antes de que el CRM base sea estable.
+- `crm/messaging.py:deliver_message()` es el único camino para mandar un mensaje saliente (envía por Zernio y recién después persiste). Nada nuevo debe insertar un `Message` saliente por su cuenta: admin, vistas de chat y el agente de IA pasan todos por ahí.
+- `WebhookEvent` reclama cada evento de Zernio por su id antes de procesarlo (Zernio entrega at-least-once). `ContactIdentity` (platform, external_id) resuelve el mismo lead entre canales que no comparten teléfono.
+- El agente de IA (`crm/agent.py`) ya está integrado, vía OpenAI directo, con doble interruptor: `AgentConfig.enabled` por canal y `Conversation.ai_enabled` por hilo — los dos tienen que estar en `True` para que conteste. Los canales arrancan apagados (migración `0005_seed_agent_configs`); activarlos es una decisión manual desde el admin, después de revisar el `system_prompt`.
+- `/pipeline/` es el tablero visual de leads por etapa (drag-and-drop en JS vanilla, sin librerías).
 - No implementar multitenancy complejo hasta que exista una necesidad real.
 
 ## Flujo para cada cambio
