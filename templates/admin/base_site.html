@@ -5,5 +5,15 @@
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'crm/admin.css' %}">{% endblock %}
 {% block branding %}
 <div id="site-name"><a href="{% url 'dashboard' %}"><span class="admin-brand-mark">C</span><span>CRM <small>INMOBILIARIO</small></span></a></div>
+{% if user.is_authenticated %}
+<details class="admin-mobile-menu">
+    <summary>Cuenta <span aria-hidden="true">⌄</span></summary>
+    <div class="admin-mobile-menu-panel">
+        <a href="{% url 'dashboard' %}">Volver al CRM</a>
+        <a href="{% url 'admin:password_change' %}">Cambiar contraseña</a>
+        <form method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form>
+    </div>
+</details>
+{% endif %}
 {% endblock %}
 {% block nav-global %}<a class="admin-back" href="{% url 'dashboard' %}">← Volver al CRM</a>{% endblock %}

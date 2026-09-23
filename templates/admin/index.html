@@ -1,0 +1,93 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log %}
+
+{% block bodyclass %}{{ block.super }} dashboard admin-home-page{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-home">
+  <header class="admin-home-header">
+    <div>
+      <span class="admin-home-eyebrow">PANEL DE CONTROL</span>
+      <h1>Administración del CRM</h1>
+      <p>Configurá el equipo, las conversaciones y el trabajo comercial desde un solo lugar.</p>
+    </div>
+    <a class="admin-home-return" href="{% url 'dashboard' %}">Ir al resumen <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <div class="admin-home-layout">
+    <div class="admin-home-apps">
+      {% for app in app_list %}
+      <section class="admin-app-section app-{{ app.app_label }}" aria-labelledby="app-{{ app.app_label }}-title">
+        <div class="admin-app-heading">
+          <span class="admin-app-icon" aria-hidden="true">{% if app.app_label == 'crm' %}✦{% else %}◎{% endif %}</span>
+          <div>
+            <span class="admin-section-kicker">{% if app.app_label == 'crm' %}OPERACIÓN COMERCIAL{% else %}ACCESO Y EQUIPO{% endif %}</span>
+            <h2 id="app-{{ app.app_label }}-title">{% if app.app_label == 'crm' %}Configuración del CRM{% else %}{{ app.name }}{% endif %}</h2>
+          </div>
+          <span class="admin-section-count">{{ app.models|length }} secciones</span>
+        </div>
+
+        <div class="admin-model-grid">
+          {% for model in app.models %}
+          <article class="admin-model-card model-{{ model.object_name|lower }}">
+            <div class="admin-model-card-top">
+              <span class="admin-model-icon" aria-hidden="true">{{ model.name|slice:':1'|upper }}</span>
+              <span class="admin-model-category">{% if app.app_label == 'crm' %}CRM{% else %}EQUIPO{% endif %}</span>
+            </div>
+            <h3>{% if model.admin_url %}<a href="{{ model.admin_url }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}</h3>
+            <p class="admin-model-description">
+              {% if model.object_name == 'AgentConfig' %}Definí cómo responde la IA en cada canal.
+              {% elif model.object_name == 'Conversation' %}Revisá los hilos y el estado de la IA.
+              {% elif model.object_name == 'PipelineStage' %}Ordená las etapas del proceso comercial.
+              {% elif model.object_name == 'ContactIdentity' %}Vinculá contactos entre distintos canales.
+              {% elif model.object_name == 'Lead' %}Administrá datos y búsquedas de tus contactos.
+              {% elif model.object_name == 'Note' %}Consultá el contexto de cada oportunidad.
+              {% elif model.object_name == 'Task' %}Organizá el seguimiento del equipo.
+              {% elif model.object_name == 'User' %}Gestioná cuentas y acceso al sistema.
+              {% elif model.object_name == 'Group' %}Organizá permisos por equipo.
+              {% else %}Gestioná esta sección del sistema.{% endif %}
+            </p>
+            <div class="admin-model-actions">
+              {% if model.admin_url %}
+                <a class="admin-model-open" href="{{ model.admin_url }}">{% if model.view_only %}Ver{% else %}Administrar{% endif %}<span aria-hidden="true">→</span></a>
+              {% endif %}
+              {% if model.add_url %}<a class="admin-model-add" href="{{ model.add_url }}">+ Agregar</a>{% endif %}
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% empty %}
+      <div class="admin-home-empty">No tenés permisos para ver o editar configuraciones.</div>
+      {% endfor %}
+    </div>
+
+    <aside class="admin-activity" aria-labelledby="admin-activity-title">
+      <div class="admin-activity-heading">
+        <span class="admin-activity-symbol" aria-hidden="true">↗</span>
+        <div><span class="admin-section-kicker">TU HISTORIAL</span><h2 id="admin-activity-title">Actividad reciente</h2></div>
+      </div>
+      {% get_admin_log 8 as admin_log for_user user %}
+      {% if admin_log %}
+      <ol class="admin-activity-list">
+        {% for entry in admin_log %}
+        <li>
+          <span class="admin-activity-dot {% if entry.is_addition %}is-add{% elif entry.is_deletion %}is-delete{% else %}is-change{% endif %}" aria-hidden="true"></span>
+          <div>
+            <span class="admin-activity-type">{% if entry.is_addition %}CREADO{% elif entry.is_deletion %}ELIMINADO{% else %}ACTUALIZADO{% endif %}</span>
+            {% if entry.is_deletion or not entry.get_admin_url %}<strong>{{ entry.object_repr }}</strong>{% else %}<a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>{% endif %}
+            <small>{% if entry.content_type %}{{ entry.content_type.name|capfirst }}{% else %}Registro{% endif %} · {{ entry.action_time|date:"d M · H:i" }}</small>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="admin-activity-empty">Todavía no hay movimientos recientes.</p>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}
